@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Vira - teste</title>
+<link rel="icon" href="/vira-favicon.svg" type="image/svg+xml">
+<style>
+:root{--cream:#f3eddd;--ink:#17130f;--blue:#2140a2;--orange:#f2522f;--green:#2f895f;--yellow:#f4ba35;--pink:#e99ab0;--wa:#dcf8c6}
+*{box-sizing:border-box}html,body{margin:0}
+body{min-height:100svh;background:var(--cream);color:var(--ink);font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:520px;margin:0 auto;padding:22px 20px 40px;min-height:100svh;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.02em;margin-bottom:22px}
+.logo{width:30px;height:30px;flex:none}
+.step{font-weight:400;color:rgba(23,19,15,.55);margin-left:auto;font-size:14px}
+h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:34px;line-height:1.05;letter-spacing:-.03em;margin:6px 0 16px}
+p{font-size:17px;line-height:1.45;margin:0 0 12px}
+ol{padding-left:22px;margin:0 0 14px}ol li{font-size:17px;line-height:1.45;margin-bottom:8px}
+.small{font-size:14px;color:rgba(23,19,15,.62)}
+.chat{background:#efe6d2;border-radius:18px;padding:14px;margin:6px 0 18px}
+.from{font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px}
+.bubble{background:#fff;border-radius:4px 16px 16px 16px;padding:12px 14px;font-size:16px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.08);white-space:pre-wrap}
+.player{display:flex;align-items:center;gap:12px}
+.play{width:46px;height:46px;border-radius:50%;border:0;background:var(--blue);color:#fff;font-size:18px;flex:none;cursor:pointer}
+.bar{flex:1;height:6px;border-radius:3px;background:rgba(23,19,15,.15);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--blue)}
+.time{font-size:13px;color:rgba(23,19,15,.6);min-width:74px;text-align:right}
+button.main{width:100%;padding:16px;border:0;border-radius:999px;background:var(--ink);color:var(--cream);font-size:17px;font-weight:700;cursor:pointer;margin-top:8px}
+button.main:disabled{opacity:.35;cursor:default}
+button.ghost{width:100%;padding:14px;border:1px solid rgba(23,19,15,.3);border-radius:999px;background:transparent;color:var(--ink);font-size:16px;cursor:pointer;margin-top:10px}
+textarea,input[type=text]{width:100%;font:inherit;font-size:17px;padding:12px 14px;border:1px solid rgba(23,19,15,.3);border-radius:14px;background:#fffdf7;min-height:96px;resize:vertical}
+.opts{display:grid;gap:10px;margin:8px 0 14px}.opts.row{grid-template-columns:repeat(5,1fr)}
+.opt{padding:14px 10px;border:1px solid rgba(23,19,15,.3);border-radius:14px;background:#fffdf7;font-size:17px;text-align:center;cursor:pointer}
+.opt.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.scale{display:flex;justify-content:space-between;font-size:13px;color:rgba(23,19,15,.6);margin-top:-6px;margin-bottom:12px}
+.count{font-family:Georgia,serif;font-size:64px;letter-spacing:-.04em;margin:14px 0}
+.spacer{flex:1}
+.err{color:var(--orange)}
+</style>
+</head>
+<body>
+<main id="app"><div class="top"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#2140a2"/><path d="M4 24c8-8 20-9 32-3" fill="none" stroke="#f2522f" stroke-width="7" stroke-linecap="round"/></svg>vira</div><p>Carregando...</p></main>
+<script>
+(() => {
+  const ENDPOINT = "https://vfvpapfpofvebvxwidxk.supabase.co/rest/v1/rpc/log_event"; // insert-only RPC, throwaway vira-teste project
+  const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmdnBhcGZwb2Z2ZWJ2eHdpZHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMzg5MDUsImV4cCI6MjEwNTcxNDkwNX0._YCVaHJEBIeSzT7VSP7AZ62uGTkBPeyBXMW7qs4LAG0"; // public anon key; RLS blocks all table access, only log_event is callable
+  const send = (ev) => fetch(ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", apikey: ANON, Authorization: "Bearer " + ANON }, body: JSON.stringify({ p_token: token, p_event: ev }), keepalive: true }).then((r) => { if (!r.ok) throw new Error(r.status); });
+  const WAIT_MS = 10 * 60 * 1000;
+  const app = document.getElementById("app");
+  const token = new URLSearchParams(location.search).get("t") || "";
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const QUESTIONS = [
+    { id: "q1_key_number", kind: "text", q: "Sem olhar de novo: qual era o número principal da mensagem da Vira?" },
+    { id: "q2_next_action", kind: "text", q: "E o que a Vira te pediu pra fazer depois?" },
+    { id: "q3_format", kind: "choice", q: "Qual formato te passou melhor esse recado?", opts: ["O texto", "O áudio", "Os dois juntos"], why: "Por quê?" },
+    { id: "q4_weekly", kind: "choice", q: "Se a Vira te mandasse uma dessas toda semana, preferia receber em...", opts: ["Texto", "Áudio", "Os dois"] },
+    { id: "q5_trust", kind: "scale", q: "De 1 a 5, quanto você confiou nos números?", lo: "1 = nada", hi: "5 = totalmente" },
+    { id: "q6_trust_gap", kind: "text", q: "O que faltou pra ser 5?", skipIf: (a) => a.q5_trust === "5" },
+    { id: "q7_judged", kind: "scale", q: "De 1 a 5, quanto você se sentiu julgado?", lo: "1 = nada", hi: "5 = muito" },
+    { id: "q8_odd_phrase", kind: "text", q: "Alguma frase soou estranha, forçada ou condescendente? Qual?", optional: true },
+    { id: "q9_name", kind: "text", q: "O que o nome \"Vira\" te faz pensar?" }
+  ];
+
+  let S, cfg, key;
+  const save = () => localStorage.setItem(key, JSON.stringify(S));
+  const log = (step, answer, meta) => {
+    const ev = { token_hash: cfg.hash, tester: cfg.tester, episode: cfg.episode, persona: cfg.persona, first: cfg.first, dry_run: !!cfg.dryRun, step, answer: answer ?? null, meta: meta || {}, client_ts: new Date().toISOString() };
+    S.events.push(ev); save();
+    send(ev).catch(() => { S.unsent = (S.unsent || []).concat(ev); save(); });
+  };
+  const frame = (label, inner) => { app.innerHTML = `<div class="top"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#2140a2"/><path d="M4 24c8-8 20-9 32-3" fill="none" stroke="#f2522f" stroke-width="7" stroke-linecap="round"/></svg>vira<span class="step">${esc(label)}</span></div>${inner}`; window.scrollTo(0, 0); };
+  const go = (step) => { S.step = step; save(); render(); };
+
+  async function sha256(s) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
+
+  async function init() {
+    if (!token) return frame("", `<h1>Link incompleto</h1><p>Esse link parece cortado. Pede o link de novo pra quem te convidou.</p>`);
+    const hash = await sha256(token);
+    const all = await fetch("sessions.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({}));
+    cfg = all[hash];
+    if (!cfg) return frame("", `<h1>Link não encontrado</h1><p>Confere se o link veio inteiro, ou pede um novo pra quem te convidou.</p>`);
+    cfg.hash = hash.slice(0, 16);
+    key = "vira-teste-" + cfg.hash;
+    S = JSON.parse(localStorage.getItem(key) || "null") || { step: "intro", events: [], answers: {} };
+    if (S.unsent && S.unsent.length) { const u = S.unsent; S.unsent = []; save(); u.forEach((ev) => send(ev).catch(() => { S.unsent = (S.unsent || []).concat(ev); save(); })); }
+    render();
+  }
+
+  const order = () => (cfg.first === "audio" ? ["audio", "text"] : ["text", "audio"]);
+
+  function render() {
+    const s = S.step;
+    if (s === "intro") return intro();
+    if (s === "m1" || s === "m2") return message(s);
+    if (s === "r1" || s === "r2") return reply(s);
+    if (s === "wait") return wait();
+    if (s.startsWith("q:")) return question(Number(s.slice(2)));
+    if (s === "done") return done();
+  }
+
+  function intro() {
+    frame("", `<h1>Oi! Obrigado por topar.</h1>
+      <p>Vou te mostrar a Vira, uma ideia de assistente que conversa com você sobre dinheiro pelo WhatsApp.</p>
+      <p><b>Como funciona</b> (uns 15-20 minutos):</p>
+      <ol><li>Você vai receber duas mensagens da Vira, uma em texto e uma em áudio. Os números são de uma pessoa fictícia, não são seus. Imagina que é a sua vida e reage como reagiria de verdade: responde se der vontade, ou não responde.</li>
+      <li>Depois de uns minutinhos eu te faço algumas perguntas rápidas. Não tem resposta certa, é a Vira que está sendo testada, não você.</li></ol>
+      <p>Pra ouvir o áudio, vale estar num lugar tranquilo (fone ajuda). Nada aqui conecta com banco nenhum.</p>
+      <p class="small">Suas respostas ficam só com o time da Vira, sem seu nome.</p>
+      <div class="spacer"></div><button class="main" id="go">Começar</button>`);
+    document.getElementById("go").onclick = () => { log("start", null, { ua: navigator.userAgent }); go("m1"); };
+  }
+
+  function message(s) {
+    const kind = order()[s === "m1" ? 0 : 1];
+    const label = s === "m1" ? "Mensagem 1 de 2" : "Mensagem 2 de 2";
+    const shownAt = Date.now();
+    if (kind === "text") {
+      frame(label, `<div class="chat"><div class="from">Vira</div><div class="bubble">${esc(cfg.card)}</div></div>
+        <p class="small">Lê com calma. Quando tocar em continuar, a mensagem some.</p><div class="spacer"></div>
+        <button class="main" id="next">Continuar</button>`);
+      document.getElementById("next").onclick = () => { log(s + "_text_read", null, { read_ms: Date.now() - shownAt }); go(s === "m1" ? "r1" : "r2"); };
+    } else {
+      frame(label, `<div class="chat"><div class="from">Vira</div><div class="bubble"><div class="player">
+        <button class="play" id="pp" aria-label="Tocar">&#9654;</button><div class="bar"><i id="bar"></i></div><span class="time" id="tm">0:00</span></div></div></div>
+        <p class="small">Ouve com calma. Dá pra continuar quando o áudio terminar.</p><div class="spacer"></div>
+        <button class="main" id="next" disabled>Continuar</button>
+        <button class="ghost" id="cant">Não consigo ouvir agora</button>`);
+      const a = new Audio(cfg.audio); a.preload = "auto";
+      let plays = 0, ended = false, maxPos = 0;
+      const pp = document.getElementById("pp"), bar = document.getElementById("bar"), tm = document.getElementById("tm"), next = document.getElementById("next");
+      const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+      pp.onclick = () => { if (a.paused) { if (a.currentTime === 0 || a.ended) plays++; a.play(); } else a.pause(); };
+      a.onplay = () => (pp.innerHTML = "&#10074;&#10074;"); a.onpause = () => (pp.innerHTML = "&#9654;");
+      a.ontimeupdate = () => { maxPos = Math.max(maxPos, a.currentTime); bar.style.width = (100 * a.currentTime / (a.duration || 1)) + "%"; tm.textContent = `${fmt(a.currentTime)} / ${fmt(a.duration || 0)}`; };
+      a.onended = () => { ended = true; next.disabled = false; };
+      a.onerror = () => { tm.innerHTML = '<span class="err">erro</span>'; };
+      const leave = (how) => { a.pause(); log(s + "_audio", null, { how, plays, listened_to_end: ended, max_position_s: Math.round(maxPos), duration_s: Math.round(a.duration || 0), on_screen_ms: Date.now() - shownAt }); go(s === "m1" ? "r1" : "r2"); };
+      next.onclick = () => leave("continued");
+      document.getElementById("cant").onclick = () => leave("could_not_listen");
+    }
+  }
+
+  function reply(s) {
+    frame(s === "r1" ? "Mensagem 1 de 2" : "Mensagem 2 de 2", `<h1>Quer responder algo pra Vira?</h1>
+      <p>Escreve do jeito que você mandaria no WhatsApp. Ou pula, se na vida real você não responderia.</p>
+      <textarea id="rep" placeholder="Sua resposta pra Vira..."></textarea><div class="spacer"></div>
+      <button class="main" id="send" disabled>Enviar resposta</button><button class="ghost" id="skip">Não responderia</button>`);
+    const t = document.getElementById("rep"), send = document.getElementById("send");
+    t.oninput = () => (send.disabled = !t.value.trim());
+    const nxt = s === "r1" ? "m2" : "wait";
+    send.onclick = () => { log(s + "_reply", t.value.trim(), { replied: true }); if (nxt === "wait") S.waitStart = Date.now(); go(nxt); };
+    document.getElementById("skip").onclick = () => { log(s + "_reply", null, { replied: false }); if (nxt === "wait") S.waitStart = Date.now(); go(nxt); };
+  }
+
+  function wait() {
+    const total = cfg.dryRun ? 20000 : WAIT_MS;
+    if (!S.waitStart) { S.waitStart = Date.now(); save(); }
+    frame("Pausa", `<h1>Agora, uma pausa.</h1><p>Pode fazer outra coisa por uns minutos. Pode até fechar essa página: é só abrir o mesmo link de novo depois.</p>
+      <div class="count" id="c"></div><p class="small">As perguntas liberam quando o tempo acabar.</p><div class="spacer"></div>
+      <button class="main" id="go" disabled>Ir para as perguntas</button>`);
+    const c = document.getElementById("c"), b = document.getElementById("go");
+    const tick = () => { const left = Math.max(0, S.waitStart + total - Date.now()); c.textContent = `${Math.floor(left / 60000)}:${String(Math.ceil((left % 60000) / 1000) % 60).padStart(2, "0")}`; if (left <= 0) { b.disabled = false; c.textContent = "0:00"; clearInterval(iv); } };
+    const iv = setInterval(tick, 500); tick();
+    b.onclick = () => { clearInterval(iv); log("wait_done", null, { waited_ms: Date.now() - S.waitStart }); go("q:0"); };
+  }
+
+  function question(i) {
+    if (i >= QUESTIONS.length) return go("done");
+    const Q = QUESTIONS[i];
+    if (Q.skipIf && Q.skipIf(S.answers)) return go("q:" + (i + 1));
+    const label = `Pergunta ${i + 1} de ${QUESTIONS.length}`;
+    let body = `<h1>${esc(Q.q)}</h1>`;
+    if (Q.kind === "text") body += `<textarea id="a" placeholder="Sua resposta..."></textarea>`;
+    if (Q.kind === "choice") body += `<div class="opts">${Q.opts.map((o) => `<div class="opt" data-v="${esc(o)}">${esc(o)}</div>`).join("")}</div>` + (Q.why ? `<p>${esc(Q.why)}</p><textarea id="w" placeholder="Opcional"></textarea>` : "");
+    if (Q.kind === "scale") body += `<div class="opts row">${[1, 2, 3, 4, 5].map((n) => `<div class="opt" data-v="${n}">${n}</div>`).join("")}</div><div class="scale"><span>${esc(Q.lo)}</span><span>${esc(Q.hi)}</span></div>`;
+    frame(label, body + `<div class="spacer"></div><button class="main" id="next" disabled>Continuar</button>`);
+    const next = document.getElementById("next"); let val = null;
+    const ok = () => (next.disabled = !(Q.optional || (val !== null && String(val).trim())));
+    const ta = document.getElementById("a"); if (ta) ta.oninput = () => { val = ta.value; ok(); };
+    app.querySelectorAll(".opt").forEach((el) => (el.onclick = () => { app.querySelectorAll(".opt").forEach((x) => x.classList.remove("on")); el.classList.add("on"); val = el.dataset.v; ok(); }));
+    ok();
+    const shown = Date.now();
+    next.onclick = () => {
+      const w = document.getElementById("w");
+      const answer = val === null ? "" : String(val).trim();
+      S.answers[Q.id] = answer;
+      log(Q.id, answer, Object.assign({ answer_ms: Date.now() - shown }, w ? { why: w.value.trim() } : {}));
+      go("q:" + (i + 1));
+    };
+  }
+
+  function done() {
+    if (!S.doneLogged) { S.doneLogged = true; log("complete", null, {}); }
+    frame("", `<h1>Pronto. Muito obrigado!</h1><p>Suas respostas já chegaram pra gente. Pode fechar essa página.</p>`);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
